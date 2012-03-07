@@ -9,7 +9,7 @@
                 <attribute name="Class-Path" value="."/>
             </manifest>
             <fileset dir="F:/workspace/autoBurn/bin"/>
-            <zipfileset excludes="META-INF/*.SF" src="F:/workspace/autoBurn/lib/jaudiotagger-2.0.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="F:/workspace/autoBurn/lib/jaudiotagger-2.0.4.jar"/>
         </jar>
     </target>
 </project>

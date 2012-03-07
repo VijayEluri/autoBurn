@@ -6,24 +6,21 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 public class AutoBurn implements IAutoBurn {
 
 	private static AutoBurn instance;
 
-	private List<String> fileList;
-	private List<String> finalList;
-	private Map<String, Integer> fileLength;
-	private List<String> folderList;
-	private String burnerPath;
-	private Integer supportLength;
-
-	private Integer total;
+	public static AutoBurn getInstance() {
+		if (instance == null) {
+			instance = new AutoBurn();
+		}
+		return instance;
+	}
 
 	/**
 	 * @param args
@@ -31,60 +28,58 @@ public class AutoBurn implements IAutoBurn {
 	public static void main(String[] args) {
 		getInstance().loadConfig();
 		getInstance().addFilesFromFolder();
-		getInstance().findLenght();
 		getInstance().sortFile();
 		getInstance().burn();
 
 	}
+
+	private String burnerPath;
+	private List<MP3> fileList;
+	private List<MP3> finalList;
+
+	public List<MP3> getFinalList() {
+		return finalList;
+	}
+
+	public void setFinalList(List<MP3> finalList) {
+		this.finalList = finalList;
+	}
+
+	private List<String> folderList;
+
+	private Integer supportLength;
+
+	private Integer total;
 
 	private AutoBurn() {
 		super();
 	}
 
 	/**
- * 
- */
-	public void sortFile() {
-		total = 0;
-		List<String> finalListTemp = new ArrayList<String>();
-		finalList = new ArrayList<String>();
+	 * Liste de tous les fichiers contenus dans les repertoires
+	 */
+	public void addFilesFromFolder() {
 
-		Iterator<String> iter = fileList.iterator();
+		FilenameFilter filter = new FilenameFilter() {
+			public boolean accept(File dir, String name) {
+				return name.endsWith("mp3");
+			}
+		};
+
+		Iterator<String> iter = getFolderList().iterator();
 		while (iter.hasNext()) {
-			int i = 0;
-			boolean ok = false;
-			String string = (String) iter.next();
-			if (fileLength.get(string) <= supportLength) {
-				Iterator<String> iter2 = finalListTemp.iterator();
-				while (iter2.hasNext()) {
-					String string2 = (String) iter2.next();
-					if (fileLength.get(string) <= fileLength.get(string2)) {
-						finalListTemp.add(i, string);
-						ok = true;
-						break;
-					}
-					i++;
-					if (ok) {
-						finalListTemp.add(string);
-					}
-				}
+			String folder = iter.next();
+			File[] listFile = new File(folder).listFiles(filter);
+			for (int i = 0; i < listFile.length; i++) {
+				File file = listFile[i];
 
-			} else {
-				System.out.println(string + " trop grand");
+				getFileList().add(
+						new MP3(file.getAbsolutePath(), AudioFileUtility
+								.getMp3Size(file.getAbsolutePath())));
+				System.out.println("Detect " + file.getAbsolutePath());
+
 			}
 
-		}
-
-		while (fileList.size() > 0) {
-			if (total + fileLength.get(fileList.get(fileList.size() - 1))
-					+ fileLength.get(fileList.get(0)) > supportLength) {
-				fileList.remove(fileList.size() - 1);
-			} else {
-				finalList.add(fileList.get(fileList.size() - 1));
-				total = total
-						+ fileLength.get(fileList.get(fileList.size() - 1));
-				fileList.remove(fileList.size() - 1);
-			}
 		}
 	}
 
@@ -103,131 +98,84 @@ public class AutoBurn implements IAutoBurn {
 		commandList.add(commandLine);
 		commandLine = burnerPath + BURN_AUDIO;
 
-		Iterator<String> iter = finalList.iterator();
-		while (iter.hasNext()) {
-			String string = (String) iter.next();
-			System.out.println("*" + string);
-			commandLine = commandLine + ADD_FILE +"\""+ string.replace("/", "\\")
-					+ "\" ";
-
+		for (MP3 mp3 : getFinalList()) {
+			commandLine = commandLine + ADD_FILE + "\""
+					+ mp3.getPath().replace("/", "\\") + "\" ";
 		}
+
 		commandList.add(commandLine + "\n\r");
 		commandLine = burnerPath + EJECT + "\n";
 		commandList.add(commandLine);
 
-		iter = finalList.iterator();
-		while (iter.hasNext()) {
-			String string = (String) iter.next();
-			System.out.println("*" + string);
-			commandLine = REMOVE + "\"" + string.replace("/", "\\") + "\"\n";
+		for (MP3 mp3 : getFinalList()) {
+			commandLine = REMOVE + "\"" + mp3.getPath().replace("/", "\\")
+					+ "\"\n";
 			commandList.add(commandLine);
 
 		}
 
-		System.out.println(total + "/" + supportLength);
-
 		BufferedWriter sortie = null;
 		try {
 			sortie = new BufferedWriter(new FileWriter(BAT, false));
-			iter = commandList.iterator();
-			while (iter.hasNext()) {
-				String string = (String) iter.next();
-
+			for (String string : commandList) {
 				sortie.write(string);
-
 			}
+
 			sortie.close();
 
 		} catch (Exception ex) {
 			System.out.println(ex.toString() + "\n\r");
 		}
 
-	/*	Runtime r = Runtime.getRuntime();
-		try {
-			r.exec(BAT);
-
-		} catch (IOException e) { // TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
+		/*
+		 * Runtime r = Runtime.getRuntime(); try { r.exec(BAT);
+		 * 
+		 * } catch (IOException e) { // TODO Auto-generated catch block
+		 * e.printStackTrace(); }
+		 */
 
 	}
 
-	/**
-	 * Tableau Fichier/taille
-	 */
-	public void findLenght() {
-		int size;
-		fileLength = new HashMap<String, Integer>();
-		Iterator<String> iter = getFileList().iterator();
-		while (iter.hasNext()) {
-			String file = (String) iter.next();
-			size = AudioFileUtility.getMp3Size(file);
-			if (size != 0) {
-				fileLength.put(file, size);
-				System.out.println(file + " " + size);
-			}
+	private int fillList(MP3 mp3, Integer length) {
+		int result = length;
 
+		if (mp3.getLength() <= length && !mp3.getUsed()) {
+			getFinalList().add(mp3);
+			mp3.setUsed(true);
+			result = length - mp3.getLength();
+
+			System.out.println("	Ajout de " + mp3.getPath() + " "
+					+ mp3.getLength() / 60 + " mn");
 		}
-	}
 
-	public static AutoBurn getInstance() {
-		if (instance == null) {
-			instance = new AutoBurn();
-		}
-		return instance;
-	}
+		return result;
 
-	/**
-	 * Liste de tous les fichiers contenus dans les repertoires
-	 */
-	public void addFilesFromFolder() {
-
-		FilenameFilter filter = new FilenameFilter() {
-			public boolean accept(File dir, String name) {
-				return name.endsWith("mp3");
-			}
-		};
-
-		Iterator<String> iter = getFolderList().iterator();
-		while (iter.hasNext()) {
-			String folder = (String) iter.next();
-			File[] listFile = new File(folder).listFiles(filter);
-			for (int i = 0; i < listFile.length; i++) {
-				File file = listFile[i];
-				getFileList().add(file.getAbsolutePath());
-
-			}
-
-		}
-	}
-
-	public List<String> getFileList() {
-		return fileList;
-	}
-
-	public void setFileList(List<String> fileList) {
-		this.fileList = fileList;
-	}
-
-	public List<String> getFolderList() {
-		return folderList;
-	}
-
-	public void setFolderList(List<String> folderList) {
-		this.folderList = folderList;
 	}
 
 	public String getBurnerPath() {
 		return burnerPath;
 	}
 
-	public void setBurnerPath(String burnerPath) {
-		this.burnerPath = burnerPath;
+	public List<MP3> getFileList() {
+		return fileList;
+	}
+
+	public List<String> getFolderList() {
+		return folderList;
+	}
+
+	public int getSupportLength() {
+		return supportLength;
+	}
+
+	private boolean isExistingFile(String name) {
+		return new File(name).exists();
 	}
 
 	public void loadConfig() {
-		fileList = new ArrayList<String>();
+		fileList = new ArrayList<MP3>();
 		folderList = new ArrayList<String>();
+		finalList = new ArrayList<MP3>();
 
 		File file = new File(CONFIG_NAME);
 
@@ -243,15 +191,20 @@ public class AutoBurn implements IAutoBurn {
 				if (prop.get(PREFIX_FILE + i) != null) {
 					if (isExistingFile(String
 							.valueOf(prop.get(PREFIX_FILE + i)))) {
-						fileList.add(String.valueOf(prop.get(PREFIX_FILE + i)));
+						getFileList().add(
+								new MP3(String.valueOf(prop
+										.get(PREFIX_FILE + i)),
+										AudioFileUtility.getMp3Size(String
+												.valueOf(prop.get(PREFIX_FILE
+														+ i)))));
 					}
 				}
 
 				if (prop.get(PREFIX_FOLDER + i) != null) {
 					if (isExistingFile(String.valueOf(prop.get(PREFIX_FOLDER
 							+ i)))) {
-						folderList.add(String.valueOf(prop.get(PREFIX_FOLDER
-								+ i)));
+						getFolderList().add(
+								String.valueOf(prop.get(PREFIX_FOLDER + i)));
 					}
 				}
 
@@ -271,24 +224,31 @@ public class AutoBurn implements IAutoBurn {
 
 	}
 
-	public Map<String, Integer> getFileLength() {
-		return fileLength;
+	public void setBurnerPath(String burnerPath) {
+		this.burnerPath = burnerPath;
 	}
 
-	public void setFileLength(Map<String, Integer> fileLength) {
-		this.fileLength = fileLength;
+	public void setFileList(List<MP3> fileList) {
+		this.fileList = fileList;
 	}
 
-	public int getSupportLength() {
-		return supportLength;
+	public void setFolderList(List<String> folderList) {
+		this.folderList = folderList;
 	}
 
 	public void setSupportLength(int supportLength) {
 		this.supportLength = supportLength;
 	}
 
-	private boolean isExistingFile(String name) {
-		return new File(name).exists();
+	public void sortFile() {
+		Collections.sort(getFileList());
+
+		int length = supportLength;
+		for (MP3 mp3 : getFileList()) {
+
+			length = fillList(mp3, length);
+		}
+
 	}
 
 }
