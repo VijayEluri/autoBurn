@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -85,48 +87,73 @@ public class AutoBurn implements IAutoBurn {
 
 	/***
 	 * Grave le cd
+	 * 
+	 * @throws IOException
 	 */
 	public void burn() {
 		List<String> commandList = new ArrayList<String>();
-
-		String commandLine = "";
-		commandLine = burnerPath + ERASE + "\n";
-		commandList.add(commandLine);
-		commandLine = burnerPath + EJECT + "\n";
-		commandList.add(commandLine);
-		commandLine = burnerPath + LOAD + "\n";
-		commandList.add(commandLine);
-		commandLine = burnerPath + BURN_AUDIO;
-
-		for (MP3 mp3 : getFinalList()) {
-			commandLine = commandLine + ADD_FILE + "\""
-					+ mp3.getPath().replace("/", "\\") + "\" ";
-		}
-
-		commandList.add(commandLine + "\n\r");
-		commandLine = burnerPath + EJECT + "\n";
-		commandList.add(commandLine);
-
-		for (MP3 mp3 : getFinalList()) {
-			commandLine = REMOVE + "\"" + mp3.getPath().replace("/", "\\")
-					+ "\"\n";
-			commandList.add(commandLine);
-
-		}
-
-		BufferedWriter sortie = null;
+		List<MP3> copyList = new ArrayList<MP3>();
+		String tmpDir = System.getProperty("java.io.tmpdir");
+		File tmpFile;
+		File dest;
 		try {
-			sortie = new BufferedWriter(new FileWriter(BAT, false));
-			for (String string : commandList) {
-				sortie.write(string);
+			for (MP3 mp3 : getFinalList()) {
+				tmpFile = new File(mp3.getPath());
+				dest = new File(tmpDir + "\\"
+						+ tmpFile.getName().replace(" ", ""));
+				Files.copy(tmpFile.toPath(), dest.toPath(),
+						StandardCopyOption.REPLACE_EXISTING);
+
+				copyList.add(new MP3(dest.getAbsolutePath(), mp3.getLength()));
 			}
 
-			sortie.close();
+			String commandLine = "";
+			commandLine = burnerPath + ERASE + "\n";
+			commandList.add(commandLine);
+			commandLine = burnerPath + EJECT + "\n";
+			commandList.add(commandLine);
+			commandLine = burnerPath + LOAD + "\n";
+			commandList.add(commandLine);
+			commandLine = burnerPath + BURN_AUDIO;
 
-		} catch (Exception ex) {
-			System.out.println(ex.toString() + "\n\r");
+			for (MP3 mp3 : copyList) {
+				commandLine = commandLine + ADD_FILE + "\""
+						+ mp3.getPath().replace("/", "\\") + "\" ";
+			}
+
+			commandList.add(commandLine + "\n\r");
+			commandLine = burnerPath + EJECT + "\n";
+			commandList.add(commandLine);
+
+			for (MP3 mp3 : getFinalList()) {
+				commandLine = REMOVE + "\"" + mp3.getPath().replace("/", "\\")
+						+ "\"\n";
+				commandList.add(commandLine);
+
+			}
+
+			for (MP3 mp3 : copyList) {
+				commandLine = REMOVE + "\"" + mp3.getPath().replace("/", "\\")
+						+ "\"\n";
+				commandList.add(commandLine);
+
+			}
+
+			BufferedWriter sortie = null;
+			try {
+				sortie = new BufferedWriter(new FileWriter(BAT, false));
+				for (String string : commandList) {
+					sortie.write(string);
+				}
+
+				sortie.close();
+
+			} catch (Exception ex) {
+				System.out.println(ex.toString() + "\n\r");
+			}
+		} catch (IOException e) {
+			System.out.println(e.toString() + "\n\r");
 		}
-
 		/*
 		 * Runtime r = Runtime.getRuntime(); try { r.exec(BAT);
 		 * 
