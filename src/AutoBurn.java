@@ -125,14 +125,17 @@ public class AutoBurn implements IAutoBurn {
 			commandLine = burnerPath + EJECT + "\n";
 			commandList.add(commandLine);
 
-			for (MP3 mp3 : getFinalList()) {
+			for (MP3 mp3 : copyList) {
 				commandLine = REMOVE + "\"" + mp3.getPath().replace("/", "\\")
 						+ "\"\n";
 				commandList.add(commandLine);
 
 			}
 
-			for (MP3 mp3 : copyList) {
+			commandLine = "pause" + "\"\n";
+			commandList.add(commandLine);
+
+			for (MP3 mp3 : getFinalList()) {
 				commandLine = REMOVE + "\"" + mp3.getPath().replace("/", "\\")
 						+ "\"\n";
 				commandList.add(commandLine);
