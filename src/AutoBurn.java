@@ -7,6 +7,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -63,6 +64,7 @@ public class AutoBurn implements IAutoBurn {
 	public void addFilesFromFolder() {
 
 		FilenameFilter filter = new FilenameFilter() {
+			@Override
 			public boolean accept(File dir, String name) {
 				return name.endsWith("mp3");
 			}
@@ -99,8 +101,14 @@ public class AutoBurn implements IAutoBurn {
 		try {
 			for (MP3 mp3 : getFinalList()) {
 				tmpFile = new File(mp3.getPath());
-				dest = new File(tmpDir + "\\"
-						+ tmpFile.getName().replace(" ", ""));
+
+				// Clean file name
+				String tmp = Normalizer.normalize(tmpFile.getName(),
+						Normalizer.Form.NFD);
+				tmp = tmp.replaceAll("[^\\p{ASCII}]", "");
+				tmp = tmp.replace(" ", "");
+
+				dest = new File(tmpDir + "\\" + tmp);
 				Files.copy(tmpFile.toPath(), dest.toPath(),
 						StandardCopyOption.REPLACE_EXISTING);
 
