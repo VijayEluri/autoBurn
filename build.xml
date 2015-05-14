@@ -3,13 +3,13 @@
     <!--this file was created by Eclipse Runnable JAR Export Wizard-->
     <!--ANT 1.7 is required                                        -->
     <target name="create_run_jar">
-        <jar destfile="Z:/B/util/autoBurn/autoBurn.jar" filesetmanifest="mergewithoutmain">
+        <jar destfile="B:/util/autoBurn/autoBurn.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="AutoBurn"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
-            <fileset dir="F:/workspace/autoBurn/bin"/>
-            <zipfileset excludes="META-INF/*.SF" src="F:/workspace/autoBurn/lib/jaudiotagger-2.0.4.jar"/>
+            <fileset dir="B:/prog/code/autoBurn/bin"/>
+            <zipfileset excludes="META-INF/*.SF" src="B:/prog/code/autoBurn/lib/jaudiotagger-2.0.4.jar"/>
         </jar>
     </target>
 </project>
