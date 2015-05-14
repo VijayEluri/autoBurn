@@ -36,6 +36,7 @@ public class AutoBurn implements IAutoBurn {
 
 	}
 
+	private Integer device;
 	private String burnerPath;
 	private List<MP3> fileList;
 	private List<MP3> finalList;
@@ -87,6 +88,16 @@ public class AutoBurn implements IAutoBurn {
 		}
 	}
 
+	/**
+	 * Add device name to command
+	 * 
+	 * @param cmd
+	 * @return cmd + device name
+	 */
+	public String addDevice(String cmd) {
+		return cmd + " -device:" + device + " ";
+	}
+
 	/***
 	 * Grave le cd
 	 * 
@@ -116,13 +127,13 @@ public class AutoBurn implements IAutoBurn {
 			}
 
 			String commandLine = "";
-			commandLine = burnerPath + ERASE + "\n";
+			commandLine = burnerPath + addDevice(ERASE) + "\n";
 			commandList.add(commandLine);
-			commandLine = burnerPath + EJECT + "\n";
+			commandLine = burnerPath + addDevice(EJECT) + "\n";
 			commandList.add(commandLine);
-			commandLine = burnerPath + LOAD + "\n";
+			commandLine = burnerPath + addDevice(LOAD) + "\n";
 			commandList.add(commandLine);
-			commandLine = burnerPath + BURN_AUDIO;
+			commandLine = burnerPath + addDevice(BURN_AUDIO);
 
 			for (MP3 mp3 : copyList) {
 				commandLine = commandLine + ADD_FILE + "\""
@@ -251,6 +262,7 @@ public class AutoBurn implements IAutoBurn {
 			}
 
 			burnerPath = String.valueOf(prop.get(PATH));
+			device = Integer.valueOf(String.valueOf(prop.get(DEVICE)));
 			supportLength = Integer.valueOf(String.valueOf(prop
 					.get(SUPPORT_LENGTH))) * 60;
 
